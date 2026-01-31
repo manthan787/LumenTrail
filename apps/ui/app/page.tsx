@@ -9,6 +9,7 @@ type SearchResult = {
   chunkId: string;
   itemId: string;
   text: string;
+  score?: number;
 };
 
 type ExplainResult = {
@@ -20,6 +21,20 @@ type ExplainResult = {
   metadata: string | null;
 };
 
+type ItemSummary = {
+  id: string;
+  source: string;
+  title: string;
+  timestamp: string | null;
+};
+
+type ChunkSummary = {
+  chunkId: string;
+  text: string;
+  start: number | null;
+  end: number | null;
+};
+
 export default function HomePage() {
   const [path, setPath] = useState("");
   const [query, setQuery] = useState("");
@@ -27,6 +42,11 @@ export default function HomePage() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [explain, setExplain] = useState<ExplainResult | null>(null);
   const [explainStatus, setExplainStatus] = useState<string | null>(null);
+  const [watchStatus, setWatchStatus] = useState<string | null>(null);
+  const [items, setItems] = useState<ItemSummary[]>([]);
+  const [chunks, setChunks] = useState<ChunkSummary[]>([]);
+  const [selectedItem, setSelectedItem] = useState<ItemSummary | null>(null);
+  const [browserStatus, setBrowserStatus] = useState<string | null>(null);
 
   const handleIngest = async () => {
     setStatus("Indexing files...");
@@ -44,6 +64,46 @@ export default function HomePage() {
       setStatus(`Indexed ${data.indexed} files, skipped ${data.skipped}.`);
     } catch (error) {
       setStatus("Gateway not reachable.");
+    }
+  };
+
+  const handleWatchStart = async () => {
+    setWatchStatus("Starting watcher...");
+    try {
+      const res = await fetch(`${gatewayBase}/api/watch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setWatchStatus(data?.error ?? "Watch failed");
+        return;
+      }
+      setWatchStatus(`Watching ${data.path}`);
+    } catch (error) {
+      setWatchStatus("Watch failed.");
+    }
+  };
+
+  const handleWatchStop = async () => {
+    setWatchStatus("Stopping watcher...");
+    try {
+      const res = await fetch(`${gatewayBase}/api/watch/stop`, {
+        method: "POST"
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setWatchStatus("Stop failed");
+        return;
+      }
+      if (data.stopped) {
+        setWatchStatus(`Stopped watching ${data.path}`);
+      } else {
+        setWatchStatus("No active watcher.");
+      }
+    } catch (error) {
+      setWatchStatus("Stop failed.");
     }
   };
 
@@ -79,6 +139,33 @@ export default function HomePage() {
     }
   };
 
+  const handleLoadItems = async () => {
+    setBrowserStatus("Loading items...");
+    try {
+      const res = await fetch(`${gatewayBase}/api/items`);
+      const data = await res.json();
+      setItems(data.items ?? []);
+      setBrowserStatus(`Loaded ${data.items?.length ?? 0} items.`);
+    } catch (error) {
+      setBrowserStatus("Failed to load items.");
+    }
+  };
+
+  const handleSelectItem = async (item: ItemSummary) => {
+    setSelectedItem(item);
+    setBrowserStatus("Loading chunks...");
+    try {
+      const res = await fetch(
+        `${gatewayBase}/api/chunks?itemId=${encodeURIComponent(item.id)}`
+      );
+      const data = await res.json();
+      setChunks(data.chunks ?? []);
+      setBrowserStatus(`Loaded ${data.chunks?.length ?? 0} chunks.`);
+    } catch (error) {
+      setBrowserStatus("Failed to load chunks.");
+    }
+  };
+
   return (
     <main className="page">
       <div className="hero">
@@ -107,6 +194,14 @@ export default function HomePage() {
             value={path}
             onChange={(event) => setPath(event.target.value)}
           />
+          <div className="inline-actions">
+            <button className="ghost small" onClick={handleWatchStart}>
+              Watch folder
+            </button>
+            <button className="ghost small" onClick={handleWatchStop}>
+              Stop watch
+            </button>
+          </div>
         </div>
         <div className="field">
           <label htmlFor="query">Search query</label>
@@ -118,6 +213,7 @@ export default function HomePage() {
           />
         </div>
         {status ? <p className="status">{status}</p> : null}
+        {watchStatus ? <p className="status">{watchStatus}</p> : null}
       </section>
 
       <section className="grid">
@@ -154,12 +250,17 @@ export default function HomePage() {
               <article key={result.chunkId} className="result">
                 <div className="result-meta">{result.itemId}</div>
                 <p>{result.text}</p>
-                <button
-                  className="ghost small"
-                  onClick={() => handleExplain(result.chunkId)}
-                >
-                  Explain this answer
-                </button>
+                <div className="inline-actions">
+                  <button
+                    className="ghost small"
+                    onClick={() => handleExplain(result.chunkId)}
+                  >
+                    Explain this answer
+                  </button>
+                  {result.score !== undefined ? (
+                    <span className="score">Score {result.score}</span>
+                  ) : null}
+                </div>
               </article>
             ))}
           </div>
@@ -200,6 +301,55 @@ export default function HomePage() {
         ) : (
           <p>Pick a result to see the reasoning trail.</p>
         )}
+      </section>
+
+      <section className="browser">
+        <div className="browser-header">
+          <h2>Data browser</h2>
+          <button className="ghost small" onClick={handleLoadItems}>
+            Refresh items
+          </button>
+        </div>
+        {browserStatus ? <p className="status">{browserStatus}</p> : null}
+        <div className="browser-grid">
+          <div className="browser-panel">
+            <h3>Items</h3>
+            {items.length === 0 ? (
+              <p>No items yet.</p>
+            ) : (
+              <ul>
+                {items.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      className={
+                        selectedItem?.id === item.id ? "selected" : undefined
+                      }
+                      onClick={() => handleSelectItem(item)}
+                    >
+                      <div className="item-title">{item.title}</div>
+                      <div className="result-meta">{item.source}</div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="browser-panel">
+            <h3>Chunks</h3>
+            {chunks.length === 0 ? (
+              <p>Select an item to view chunks.</p>
+            ) : (
+              <div className="chunk-list">
+                {chunks.map((chunk) => (
+                  <article key={chunk.chunkId} className="result">
+                    <div className="result-meta">{chunk.chunkId}</div>
+                    <p>{chunk.text}</p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </section>
     </main>
   );

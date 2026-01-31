@@ -2,6 +2,7 @@ export type SearchResult = {
   chunkId: string;
   itemId: string;
   text: string;
+  score: number;
 };
 
 export function searchChunks(db: any, query: string, limit = 20) {
@@ -11,7 +12,16 @@ export function searchChunks(db: any, query: string, limit = 20) {
      WHERE text LIKE ?
      LIMIT ?`
   );
-  return stmt.all(`%${query}%`, limit) as SearchResult[];
+  const raw = stmt.all(`%${query}%`, limit * 5) as Array<{
+    chunkId: string;
+    itemId: string;
+    text: string;
+  }>;
+  const scored = raw.map((row) => ({
+    ...row,
+    score: countOccurrences(row.text, query)
+  }));
+  return scored.sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
 export type ExplainResult = {
@@ -37,4 +47,19 @@ export function explainChunk(db: any, chunkId: string) {
      LIMIT 1`
   );
   return stmt.get(chunkId) as ExplainResult | undefined;
+}
+
+function countOccurrences(text: string, needle: string) {
+  if (!needle.trim()) return 0;
+  const haystack = text.toLowerCase();
+  const target = needle.toLowerCase();
+  let count = 0;
+  let index = 0;
+  while (true) {
+    index = haystack.indexOf(target, index);
+    if (index === -1) break;
+    count += 1;
+    index += target.length;
+  }
+  return count;
 }

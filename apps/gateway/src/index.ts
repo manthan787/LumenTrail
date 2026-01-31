@@ -1,11 +1,12 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { openDb, ingestFile, scanDirectory, searchChunks, explainChunk } from "@lumentrail/pipelines";
+import { openDb, ingestFile, scanDirectory, searchChunks, explainChunk, watchDirectory, listItems, listChunks } from "@lumentrail/pipelines";
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: true });
 const dbPath = process.env.LUMENTRAIL_DB_PATH ?? "./data/lumentrail.db";
 const db = openDb({ path: dbPath });
+let activeWatch: { path: string; close: () => Promise<void> } | null = null;
 
 app.get("/health", async () => ({ ok: true, service: "gateway" }));
 
@@ -35,6 +36,33 @@ app.post("/api/ingest/files", async (req, reply) => {
   return { ok: true, indexed, skipped };
 });
 
+app.post("/api/watch", async (req, reply) => {
+  const body = req.body as { path?: string };
+  if (!body?.path) {
+    reply.status(400);
+    return { ok: false, error: "path_required" };
+  }
+  if (activeWatch) {
+    reply.status(409);
+    return { ok: false, error: "already_watching", path: activeWatch.path };
+  }
+  const handle = watchDirectory(body.path, (filePath) => {
+    ingestFile(db, filePath);
+  });
+  activeWatch = { path: body.path, close: handle.close };
+  return { ok: true, path: body.path };
+});
+
+app.post("/api/watch/stop", async () => {
+  if (!activeWatch) {
+    return { ok: true, stopped: false };
+  }
+  await activeWatch.close();
+  const stoppedPath = activeWatch.path;
+  activeWatch = null;
+  return { ok: true, stopped: true, path: stoppedPath };
+});
+
 app.get("/api/explain", async (req, reply) => {
   const chunkId = (req.query as { chunkId?: string }).chunkId ?? "";
   if (!chunkId.trim()) {
@@ -47,6 +75,23 @@ app.get("/api/explain", async (req, reply) => {
     return { ok: false, error: "chunk_not_found" };
   }
   return { ok: true, result };
+});
+
+app.get("/api/items", async (req) => {
+  const limit = Number((req.query as { limit?: string }).limit ?? 50);
+  const items = listItems(db, Number.isNaN(limit) ? 50 : limit);
+  return { items };
+});
+
+app.get("/api/chunks", async (req, reply) => {
+  const query = req.query as { itemId?: string; limit?: string };
+  if (!query.itemId) {
+    reply.status(400);
+    return { ok: false, error: "item_id_required" };
+  }
+  const limit = Number(query.limit ?? 50);
+  const chunks = listChunks(db, query.itemId, Number.isNaN(limit) ? 50 : limit);
+  return { chunks };
 });
 
 const port = Number(process.env.PORT ?? 8787);

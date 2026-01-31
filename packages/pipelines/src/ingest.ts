@@ -1,6 +1,7 @@
 import { readFileSync, statSync } from "node:fs";
 import { extname, basename } from "node:path";
 import { Item, Chunk } from "@lumentrail/sdk";
+import { chunkText } from "./chunk.js";
 const SUPPORTED_EXTENSIONS = new Set([".txt", ".md"]);
 
 export function ingestFile(db: any, filePath: string) {
@@ -20,13 +21,6 @@ export function ingestFile(db: any, filePath: string) {
     metadata: { path: filePath, size: stat.size }
   };
 
-  const chunk: Chunk = {
-    itemId: item.id,
-    chunkId: `${item.id}:chunk:0`,
-    text: content.slice(0, 4000),
-    span: { start: 0, end: Math.min(4000, content.length) }
-  };
-
   const insertItem = db.prepare(
     `INSERT OR REPLACE INTO items (id, source, title, author, timestamp, content, metadata, permissions)
      VALUES (@id, @source, @title, @author, @timestamp, @content, @metadata, @permissions)`
@@ -37,20 +31,33 @@ export function ingestFile(db: any, filePath: string) {
      VALUES (@chunkId, @itemId, @text, @start, @end, @citations)`
   );
 
-  insertItem.run({
-    ...item,
-    metadata: JSON.stringify(item.metadata ?? {}),
-    permissions: JSON.stringify(item.permissions ?? [])
+  const chunks = chunkText(content);
+  const transaction = db.transaction(() => {
+    insertItem.run({
+      ...item,
+      metadata: JSON.stringify(item.metadata ?? {}),
+      permissions: JSON.stringify(item.permissions ?? [])
+    });
+
+    chunks.forEach((entry, index) => {
+      const chunk: Chunk = {
+        itemId: item.id,
+        chunkId: `${item.id}:chunk:${index}`,
+        text: entry.text,
+        span: { start: entry.start, end: entry.end }
+      };
+      insertChunk.run({
+        chunkId: chunk.chunkId,
+        itemId: chunk.itemId,
+        text: chunk.text,
+        start: chunk.span?.start ?? null,
+        end: chunk.span?.end ?? null,
+        citations: JSON.stringify(chunk.citations ?? [])
+      });
+    });
   });
 
-  insertChunk.run({
-    chunkId: chunk.chunkId,
-    itemId: chunk.itemId,
-    text: chunk.text,
-    start: chunk.span?.start ?? null,
-    end: chunk.span?.end ?? null,
-    citations: JSON.stringify(chunk.citations ?? [])
-  });
+  transaction();
 
   return { ok: true } as const;
 }

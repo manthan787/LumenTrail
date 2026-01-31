@@ -68,6 +68,13 @@ p {
   flex-wrap: wrap;
 }
 
+.inline-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 button {
   border: none;
   border-radius: 999px;
@@ -165,6 +172,68 @@ input {
   margin-bottom: 8px;
 }
 
+.score {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.browser {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.browser-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.browser-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  gap: 24px;
+}
+
+.browser-panel {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.browser-panel ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.browser-panel li button {
+  width: 100%;
+  text-align: left;
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid transparent;
+  background: white;
+}
+
+.browser-panel li button.selected {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.item-title {
+  font-weight: 600;
+}
+
+.chunk-list {
+  display: grid;
+  gap: 12px;
+}
+
 .explain {
   display: flex;
   flex-direction: column;
@@ -205,5 +274,9 @@ input {
 @media (max-width: 640px) {
   .page {
     padding: 48px 24px 72px;
+  }
+
+  .browser-grid {
+    grid-template-columns: 1fr;
   }
 }
