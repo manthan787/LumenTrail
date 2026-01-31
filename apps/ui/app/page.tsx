@@ -239,38 +239,24 @@ export default function HomePage() {
   };
 
   return (
-    <main className="page">
-      <div className="hero">
-        <div className="badge">Local-first research OS</div>
-        <h1>LumenTrail</h1>
-        <p>
-          Turn Slack, Drive, Notion, and local files into a single, trustworthy
-          research brain with citations you can click.
-        </p>
-        <div className="actions">
-          <button className="primary" onClick={handleChooseFolder}>
-            Choose a folder
-          </button>
-          <button className="ghost" onClick={handleIngest}>
-            Index selected
-          </button>
-          <button className="ghost" onClick={handleSearch}>
-            Search
-          </button>
-        </div>
-      </div>
-
-      <section className="panel">
-        <div className="field">
-          <label>Selected folder</label>
-          <div className="selection">
-            <span>{folderLabel ?? "No folder selected"}</span>
-            <span className="muted">
-              {selectedFiles.length > 0
-                ? `${selectedFiles.length} files`
-                : "Pick a folder to index"}
-            </span>
+    <main className="shell">
+      <aside className="rail">
+        <div className="brand">
+          <div className="brand-mark">LT</div>
+          <div>
+            <div className="brand-title">LumenTrail</div>
+            <div className="brand-sub">Research automation OS</div>
           </div>
+        </div>
+
+        <div className="rail-section">
+          <div className="section-title">Sources</div>
+          <button className="rail-action" onClick={handleChooseFolder}>
+            Choose local folder
+          </button>
+          <button className="rail-action" onClick={handleIngest}>
+            Index selected files
+          </button>
           <input
             ref={fileInputRef}
             type="file"
@@ -282,200 +268,256 @@ export default function HomePage() {
               string
             >)}
           />
+          <div className="pill">
+            <span>{folderLabel ?? "No folder selected"}</span>
+            <span className="muted">
+              {selectedFiles.length > 0
+                ? `${selectedFiles.length} files`
+                : "Pick a folder to index"}
+            </span>
+          </div>
+          {status ? <div className="status-chip">{status}</div> : null}
         </div>
-        <div className="field">
-          <label htmlFor="query">Search query</label>
-          <input
-            id="query"
-            placeholder="Project update"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </div>
-        {status ? <p className="status">{status}</p> : null}
-      </section>
 
-      <section className="connectors">
-        <div className="browser-header">
-          <h2>Connectors</h2>
-          <button className="ghost small" onClick={loadConnectors}>
-            Refresh
+        <div className="rail-section">
+          <div className="section-title">Automations</div>
+          <button className="rail-action" onClick={handleLoadItems}>
+            Refresh knowledge base
           </button>
+          <button className="rail-action" onClick={handleSearch}>
+            Run current search
+          </button>
+          {connectorStatus ? (
+            <div className="status-chip">{connectorStatus}</div>
+          ) : null}
         </div>
-        {connectorStatus ? <p className="status">{connectorStatus}</p> : null}
-        <div className="connector-grid">
-          {connectors.map((connector) => (
-            <div key={connector.id} className="connector-card">
-              <div>
-                <strong>{connector.name}</strong>
-                <div className="connector-meta">{connector.description}</div>
-              </div>
-              <div className="connector-meta">
-                Status: {connector.connected ? "Connected" : "Not connected"}
-              </div>
-              {connector.lastSync ? (
-                <div className="connector-meta">
-                  Last sync: {new Date(connector.lastSync).toLocaleString()}
-                </div>
-              ) : null}
-              {connector.itemCount ? (
-                <div className="connector-meta">
-                  Items: {connector.itemCount}
-                </div>
-              ) : null}
-              <div className="inline-actions">
-                <button
-                  className="ghost small"
-                  onClick={() => handleConnect(connector.id)}
-                >
-                  Connect
-                </button>
-                <button
-                  className="ghost small"
-                  onClick={() => handleSync(connector.id)}
-                >
-                  Sync
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
 
-      <section className="grid">
-        <div className="card">
-          <h2>Explainable answers</h2>
-          <p>
-            One-click “Explain this answer” shows the exact snippets and a
-            timeline of reasoning.
-          </p>
-        </div>
-        <div className="card">
-          <h2>Auto-add tools</h2>
-          <p>
-            LumenTrail detects missing sources and guides you through a fast
-            OAuth connect flow.
-          </p>
-        </div>
-        <div className="card">
-          <h2>Local-first by default</h2>
-          <p>
-            All data stays on your machine with a local token vault and
-            permission-aware indexing.
-          </p>
-        </div>
-      </section>
-
-      <section className="results">
-        <h2>Search results</h2>
-        {results.length === 0 ? (
-          <p>No matches yet. Index a folder and search.</p>
-        ) : (
-          <div className="result-list">
-            {results.map((result) => (
-              <article key={result.chunkId} className="result">
-                <div className="result-meta">{result.itemId}</div>
-                <p>{result.text}</p>
-                <div className="inline-actions">
+        <div className="rail-section">
+          <div className="section-title">Connectors</div>
+          <button className="rail-action" onClick={loadConnectors}>
+            Refresh connectors
+          </button>
+          <div className="rail-list">
+            {connectors.map((connector) => (
+              <div key={connector.id} className="rail-item">
+                <div>
+                  <div className="rail-item-title">{connector.name}</div>
+                  <div className="muted">{connector.description}</div>
+                </div>
+                <div className="rail-item-meta">
+                  {connector.connected ? "Connected" : "Not connected"}
+                </div>
+                <div className="rail-item-actions">
                   <button
                     className="ghost small"
-                    onClick={() => handleExplain(result.chunkId)}
+                    onClick={() => handleConnect(connector.id)}
                   >
-                    Explain this answer
+                    Connect
                   </button>
-                  {result.score !== undefined ? (
-                    <span className="score">Score {result.score}</span>
-                  ) : null}
+                  <button
+                    className="ghost small"
+                    onClick={() => handleSync(connector.id)}
+                  >
+                    Sync
+                  </button>
                 </div>
-              </article>
+              </div>
             ))}
           </div>
-        )}
-      </section>
+        </div>
+      </aside>
 
-      <section className="explain">
-        <h2>Explanation</h2>
-        {explainStatus ? <p className="status">{explainStatus}</p> : null}
-        {explain ? (
-          <div className="explain-card">
-            <div className="result-meta">{explain.title}</div>
-            <p>{explain.text}</p>
-            <div className="timeline">
-              <div className="timeline-step">
-                <span>1</span>
-                <div>
-                  <strong>Retrieved</strong>
-                  <p>Matched this snippet from the indexed file.</p>
+      <section className="workspace">
+        <header className="hero">
+          <div>
+            <div className="badge">Automation-ready research</div>
+            <h1>Build living research briefs in minutes.</h1>
+            <p>
+              LumenTrail pulls knowledge from your sources, keeps it fresh, and
+              gives you audit-ready answers with citations.
+            </p>
+          </div>
+          <div className="hero-card">
+            <div className="hero-card-title">Ask LumenTrail</div>
+            <div className="search-box">
+              <input
+                id="query"
+                placeholder="Summarize the latest launch notes and risks"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              <button className="primary" onClick={handleSearch}>
+                Run search
+              </button>
+            </div>
+            <div className="chip-row">
+              <span className="chip">Weekly brief</span>
+              <span className="chip">Roadmap Q2</span>
+              <span className="chip">Client health</span>
+            </div>
+          </div>
+        </header>
+
+        <section className="grid">
+          <div className="card">
+            <h2>Automation recipes</h2>
+            <p>Start a repeatable flow with one click.</p>
+            <div className="recipe-list">
+              <button className="recipe">Daily product pulse</button>
+              <button className="recipe">Research briefing</button>
+              <button className="recipe">Customer feedback digest</button>
+            </div>
+          </div>
+          <div className="card">
+            <h2>Live status</h2>
+            <div className="status-list">
+              <div>
+                <div className="status-label">Indexed sources</div>
+                <div className="status-value">{items.length}</div>
+              </div>
+              <div>
+                <div className="status-label">Connected tools</div>
+                <div className="status-value">
+                  {connectors.filter((c) => c.connected).length}
                 </div>
               </div>
-              <div className="timeline-step">
-                <span>2</span>
-                <div>
-                  <strong>Cited</strong>
-                  <p>Stored provenance for repeatable answers.</p>
-                </div>
-              </div>
-              <div className="timeline-step">
-                <span>3</span>
-                <div>
-                  <strong>Explained</strong>
-                  <p>Surfaced the exact chunk used in the response.</p>
-                </div>
+              <div>
+                <div className="status-label">Search signals</div>
+                <div className="status-value">{results.length}</div>
               </div>
             </div>
           </div>
-        ) : (
-          <p>Pick a result to see the reasoning trail.</p>
-        )}
-      </section>
+          <div className="card">
+            <h2>Explainability</h2>
+            <p>
+              Every answer includes the snippet, its source, and the reasoning
+              path that selected it.
+            </p>
+          </div>
+        </section>
 
-      <section className="browser">
-        <div className="browser-header">
-          <h2>Data browser</h2>
-          <button className="ghost small" onClick={handleLoadItems}>
-            Refresh items
-          </button>
-        </div>
-        {browserStatus ? <p className="status">{browserStatus}</p> : null}
-        <div className="browser-grid">
-          <div className="browser-panel">
-            <h3>Items</h3>
-            {items.length === 0 ? (
-              <p>No items yet.</p>
-            ) : (
-              <ul>
-                {items.map((item) => (
-                  <li key={item.id}>
+        <section className="results">
+          <div className="section-header">
+            <h2>Results</h2>
+            <span className="muted">
+              {results.length === 0
+                ? "No results yet"
+                : `${results.length} matches`}
+            </span>
+          </div>
+          {results.length === 0 ? (
+            <div className="empty">Run a search to see evidence here.</div>
+          ) : (
+            <div className="result-list">
+              {results.map((result) => (
+                <article key={result.chunkId} className="result">
+                  <div className="result-meta">{result.itemId}</div>
+                  <p>{result.text}</p>
+                  <div className="inline-actions">
                     <button
-                      className={
-                        selectedItem?.id === item.id ? "selected" : undefined
-                      }
-                      onClick={() => handleSelectItem(item)}
+                      className="ghost small"
+                      onClick={() => handleExplain(result.chunkId)}
                     >
-                      <div className="item-title">{item.title}</div>
-                      <div className="result-meta">{item.source}</div>
+                      Explain
                     </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+                    {result.score !== undefined ? (
+                      <span className="score">Score {result.score}</span>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="explain">
+          <div className="section-header">
+            <h2>Reasoning trail</h2>
+            <span className="muted">
+              {explainStatus ?? "Pick a result to inspect provenance"}
+            </span>
           </div>
-          <div className="browser-panel">
-            <h3>Chunks</h3>
-            {chunks.length === 0 ? (
-              <p>Select an item to view chunks.</p>
-            ) : (
-              <div className="chunk-list">
-                {chunks.map((chunk) => (
-                  <article key={chunk.chunkId} className="result">
-                    <div className="result-meta">{chunk.chunkId}</div>
-                    <p>{chunk.text}</p>
-                  </article>
-                ))}
+          {explain ? (
+            <div className="explain-card">
+              <div className="result-meta">{explain.title}</div>
+              <p>{explain.text}</p>
+              <div className="timeline">
+                <div className="timeline-step">
+                  <span>1</span>
+                  <div>
+                    <strong>Retrieved</strong>
+                    <p>Matched snippet from indexed evidence.</p>
+                  </div>
+                </div>
+                <div className="timeline-step">
+                  <span>2</span>
+                  <div>
+                    <strong>Ranked</strong>
+                    <p>Prioritized based on relevance and recency.</p>
+                  </div>
+                </div>
+                <div className="timeline-step">
+                  <span>3</span>
+                  <div>
+                    <strong>Cited</strong>
+                    <p>Stored provenance for audit-ready answers.</p>
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
+          ) : (
+            <div className="empty">No explanation yet.</div>
+          )}
+        </section>
+
+        <section className="browser">
+          <div className="section-header">
+            <h2>Knowledge base</h2>
+            <button className="ghost small" onClick={handleLoadItems}>
+              Refresh items
+            </button>
           </div>
-        </div>
+          {browserStatus ? <p className="status">{browserStatus}</p> : null}
+          <div className="browser-grid">
+            <div className="browser-panel">
+              <h3>Items</h3>
+              {items.length === 0 ? (
+                <p>No items yet.</p>
+              ) : (
+                <ul>
+                  {items.map((item) => (
+                    <li key={item.id}>
+                      <button
+                        className={
+                          selectedItem?.id === item.id ? "selected" : undefined
+                        }
+                        onClick={() => handleSelectItem(item)}
+                      >
+                        <div className="item-title">{item.title}</div>
+                        <div className="result-meta">{item.source}</div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="browser-panel">
+              <h3>Chunks</h3>
+              {chunks.length === 0 ? (
+                <p>Select an item to view chunks.</p>
+              ) : (
+                <div className="chunk-list">
+                  {chunks.map((chunk) => (
+                    <article key={chunk.chunkId} className="result">
+                      <div className="result-meta">{chunk.chunkId}</div>
+                      <p>{chunk.text}</p>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
       </section>
     </main>
   );
