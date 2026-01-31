@@ -160,6 +160,21 @@ button.small {
   gap: 8px;
 }
 
+.selection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 12px;
+  background: white;
+  border: 1px dashed rgba(27, 22, 18, 0.2);
+}
+
+.muted {
+  font-size: 13px;
+  color: var(--muted);
+}
+
 label {
   font-size: 14px;
   color: var(--muted);

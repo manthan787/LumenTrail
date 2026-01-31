@@ -39,6 +39,27 @@ app.post("/api/ingest/files", async (req, reply) => {
   return { ok: true, indexed, skipped };
 });
 
+app.post("/api/ingest/batch", async (req, reply) => {
+  const body = req.body as {
+    items?: Array<{
+      id: string;
+      source: "files";
+      title: string;
+      content: string;
+      timestamp?: string;
+      metadata?: Record<string, unknown>;
+    }>;
+  };
+  if (!body?.items || body.items.length === 0) {
+    reply.status(400);
+    return { ok: false, error: "items_required" };
+  }
+  body.items.forEach((item) => {
+    ingestText(db, item);
+  });
+  return { ok: true, ingested: body.items.length };
+});
+
 app.post("/api/watch", async (req, reply) => {
   const body = req.body as { path?: string };
   if (!body?.path) {

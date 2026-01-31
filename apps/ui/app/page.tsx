@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const gatewayBase =
   process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://127.0.0.1:8787";
@@ -46,13 +46,14 @@ type Connector = {
 };
 
 export default function HomePage() {
-  const [path, setPath] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [folderLabel, setFolderLabel] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [explain, setExplain] = useState<ExplainResult | null>(null);
   const [explainStatus, setExplainStatus] = useState<string | null>(null);
-  const [watchStatus, setWatchStatus] = useState<string | null>(null);
   const [items, setItems] = useState<ItemSummary[]>([]);
   const [chunks, setChunks] = useState<ChunkSummary[]>([]);
   const [selectedItem, setSelectedItem] = useState<ItemSummary | null>(null);
@@ -73,6 +74,23 @@ export default function HomePage() {
   useEffect(() => {
     loadConnectors();
   }, []);
+
+  const handleChooseFolder = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFolderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    setSelectedFiles(files);
+    if (files.length > 0) {
+      const path = (files[0] as File & { webkitRelativePath?: string })
+        .webkitRelativePath;
+      const root = path?.split("/")[0];
+      setFolderLabel(root ?? "Selected folder");
+    } else {
+      setFolderLabel(null);
+    }
+  };
 
   const handleConnect = async (id: string) => {
     setConnectorStatus("Connecting...");
@@ -115,61 +133,49 @@ export default function HomePage() {
   };
 
   const handleIngest = async () => {
+    if (selectedFiles.length === 0) {
+      setStatus("Choose a folder first.");
+      return;
+    }
+
     setStatus("Indexing files...");
     try {
-      const res = await fetch(`${gatewayBase}/api/ingest/files`, {
+      const supported = selectedFiles.filter((file) =>
+        file.name.toLowerCase().match(/\.(md|txt)$/)
+      );
+      const items = await Promise.all(
+        supported.map(async (file) => {
+          const content = await file.text();
+          const relativePath = (file as File & {
+            webkitRelativePath?: string;
+          }).webkitRelativePath;
+          const id = `files:${relativePath ?? file.name}`;
+          return {
+            id,
+            source: "files" as const,
+            title: file.name,
+            content,
+            timestamp: new Date(file.lastModified).toISOString(),
+            metadata: {
+              relativePath
+            }
+          };
+        })
+      );
+
+      const res = await fetch(`${gatewayBase}/api/ingest/batch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path })
+        body: JSON.stringify({ items })
       });
       const data = await res.json();
       if (!res.ok) {
         setStatus(data?.error ?? "Indexing failed");
         return;
       }
-      setStatus(`Indexed ${data.indexed} files, skipped ${data.skipped}.`);
+      setStatus(`Indexed ${data.ingested} files.`);
     } catch (error) {
       setStatus("Gateway not reachable.");
-    }
-  };
-
-  const handleWatchStart = async () => {
-    setWatchStatus("Starting watcher...");
-    try {
-      const res = await fetch(`${gatewayBase}/api/watch`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setWatchStatus(data?.error ?? "Watch failed");
-        return;
-      }
-      setWatchStatus(`Watching ${data.path}`);
-    } catch (error) {
-      setWatchStatus("Watch failed.");
-    }
-  };
-
-  const handleWatchStop = async () => {
-    setWatchStatus("Stopping watcher...");
-    try {
-      const res = await fetch(`${gatewayBase}/api/watch/stop`, {
-        method: "POST"
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setWatchStatus("Stop failed");
-        return;
-      }
-      if (data.stopped) {
-        setWatchStatus(`Stopped watching ${data.path}`);
-      } else {
-        setWatchStatus("No active watcher.");
-      }
-    } catch (error) {
-      setWatchStatus("Stop failed.");
     }
   };
 
@@ -242,8 +248,11 @@ export default function HomePage() {
           research brain with citations you can click.
         </p>
         <div className="actions">
-          <button className="primary" onClick={handleIngest}>
-            Index a folder
+          <button className="primary" onClick={handleChooseFolder}>
+            Choose a folder
+          </button>
+          <button className="ghost" onClick={handleIngest}>
+            Index selected
           </button>
           <button className="ghost" onClick={handleSearch}>
             Search
@@ -253,21 +262,26 @@ export default function HomePage() {
 
       <section className="panel">
         <div className="field">
-          <label htmlFor="path">Folder path</label>
-          <input
-            id="path"
-            placeholder="/Users/you/Documents/research"
-            value={path}
-            onChange={(event) => setPath(event.target.value)}
-          />
-          <div className="inline-actions">
-            <button className="ghost small" onClick={handleWatchStart}>
-              Watch folder
-            </button>
-            <button className="ghost small" onClick={handleWatchStop}>
-              Stop watch
-            </button>
+          <label>Selected folder</label>
+          <div className="selection">
+            <span>{folderLabel ?? "No folder selected"}</span>
+            <span className="muted">
+              {selectedFiles.length > 0
+                ? `${selectedFiles.length} files`
+                : "Pick a folder to index"}
+            </span>
           </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleFolderChange}
+            style={{ display: "none" }}
+            {...({ webkitdirectory: "true", directory: "true" } as Record<
+              string,
+              string
+            >)}
+          />
         </div>
         <div className="field">
           <label htmlFor="query">Search query</label>
@@ -279,7 +293,6 @@ export default function HomePage() {
           />
         </div>
         {status ? <p className="status">{status}</p> : null}
-        {watchStatus ? <p className="status">{watchStatus}</p> : null}
       </section>
 
       <section className="connectors">
