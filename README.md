@@ -1,5 +1,9 @@
 # LumenTrail
 
+[![CI](https://github.com/manthan787/LumenTrail/actions/workflows/ci.yml/badge.svg)](https://github.com/manthan787/LumenTrail/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/manthan787/LumenTrail)](https://github.com/manthan787/LumenTrail/releases)
+[![License](https://img.shields.io/github/license/manthan787/LumenTrail)](LICENSE)
+
 Local-first Personal Research OS with provenance, citations, and explainable answers.
 
 ## Why this exists
