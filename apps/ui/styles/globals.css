@@ -1,10 +1,14 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;500;700&display=swap");
+
 :root {
-  --bg: #f6f3ee;
-  --ink: #1b1612;
-  --accent: #ea6a27;
-  --muted: #61564f;
-  --panel: #fff8f2;
-  --shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+  --bg: #f7f3ee;
+  --ink: #11100e;
+  --accent: #ef5a1a;
+  --accent-2: #1f7a6b;
+  --muted: #5f544c;
+  --panel: #fff7ef;
+  --panel-2: #f3ece5;
+  --shadow: 0 22px 60px rgba(0, 0, 0, 0.12);
   --radius: 18px;
 }
 
@@ -16,9 +20,9 @@ html,
 body {
   padding: 0;
   margin: 0;
-  font-family: "Fira Sans", "Gill Sans", "Trebuchet MS", sans-serif;
+  font-family: "Space Grotesk", "Avenir", sans-serif;
   color: var(--ink);
-  background: radial-gradient(circle at top, #fff1df, #f3eee7 55%, #f8f6f1);
+  background: radial-gradient(circle at top, #fff4e2, #f2eee7 55%, #f8f6f1);
   min-height: 100%;
 }
 
@@ -28,6 +32,39 @@ body {
   flex-direction: column;
   gap: 56px;
   padding: 72px clamp(24px, 8vw, 120px) 96px;
+  position: relative;
+  overflow: hidden;
+}
+
+.page::before,
+.page::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  border-radius: 999px;
+  filter: blur(0px);
+  opacity: 0.15;
+}
+
+.page::before {
+  width: 420px;
+  height: 420px;
+  background: #ef5a1a;
+  top: -160px;
+  right: -120px;
+}
+
+.page::after {
+  width: 520px;
+  height: 520px;
+  background: #1f7a6b;
+  bottom: -200px;
+  left: -180px;
+}
+
+.page > * {
+  position: relative;
+  z-index: 1;
 }
 
 .hero {
@@ -35,6 +72,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  animation: floatIn 0.8s ease-out;
 }
 
 .badge {
@@ -50,7 +88,8 @@ body {
 }
 
 h1 {
-  font-size: clamp(48px, 7vw, 86px);
+  font-family: "Newsreader", serif;
+  font-size: clamp(48px, 7vw, 88px);
   letter-spacing: -1px;
   margin: 0;
 }
@@ -81,6 +120,11 @@ button {
   padding: 12px 22px;
   font-size: 16px;
   cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
 }
 
 button.primary {
@@ -95,22 +139,9 @@ button.ghost {
   color: var(--ink);
 }
 
-.small {
+button.small {
   padding: 8px 16px;
   font-size: 14px;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 24px;
-}
-
-.card {
-  background: var(--panel);
-  border-radius: var(--radius);
-  padding: 24px;
-  box-shadow: var(--shadow);
 }
 
 .panel {
@@ -148,6 +179,19 @@ input {
   color: var(--ink);
 }
 
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px;
+}
+
+.card {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
 .results {
   display: flex;
   flex-direction: column;
@@ -175,6 +219,43 @@ input {
 .score {
   font-size: 12px;
   color: var(--muted);
+}
+
+.explain {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.explain-card {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.timeline {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.timeline-step {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.timeline-step span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
 }
 
 .browser {
@@ -234,41 +315,42 @@ input {
   gap: 12px;
 }
 
-.explain {
+.connectors {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.explain-card {
+.connector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.connector-card {
   background: var(--panel);
   border-radius: var(--radius);
-  padding: 24px;
+  padding: 20px;
   box-shadow: var(--shadow);
-}
-
-.timeline {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  margin-top: 16px;
 }
 
-.timeline-step {
-  display: grid;
-  grid-template-columns: 32px 1fr;
-  gap: 12px;
-  align-items: start;
+.connector-meta {
+  font-size: 12px;
+  color: var(--muted);
 }
 
-.timeline-step span {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  background: var(--accent);
-  color: white;
-  font-weight: 700;
+@keyframes floatIn {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @media (max-width: 640px) {

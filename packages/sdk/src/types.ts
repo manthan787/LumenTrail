@@ -27,3 +27,20 @@ export type Query = {
   citations?: string[];
   artifacts?: Record<string, unknown>;
 };
+
+export type ConnectorStatus = {
+  id: string;
+  name: string;
+  source: SourceType;
+  connected: boolean;
+  lastSync?: string;
+  itemCount?: number;
+  error?: string;
+};
+
+export type Connector = {
+  id: string;
+  name: string;
+  source: SourceType;
+  description: string;
+};

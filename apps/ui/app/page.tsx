@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const gatewayBase =
   process.env.NEXT_PUBLIC_GATEWAY_URL ?? "http://127.0.0.1:8787";
@@ -35,6 +35,16 @@ type ChunkSummary = {
   end: number | null;
 };
 
+type Connector = {
+  id: string;
+  name: string;
+  source: string;
+  description: string;
+  connected: boolean;
+  lastSync?: string;
+  itemCount?: number;
+};
+
 export default function HomePage() {
   const [path, setPath] = useState("");
   const [query, setQuery] = useState("");
@@ -47,6 +57,62 @@ export default function HomePage() {
   const [chunks, setChunks] = useState<ChunkSummary[]>([]);
   const [selectedItem, setSelectedItem] = useState<ItemSummary | null>(null);
   const [browserStatus, setBrowserStatus] = useState<string | null>(null);
+  const [connectors, setConnectors] = useState<Connector[]>([]);
+  const [connectorStatus, setConnectorStatus] = useState<string | null>(null);
+
+  const loadConnectors = async () => {
+    try {
+      const res = await fetch(`${gatewayBase}/api/connectors`);
+      const data = await res.json();
+      setConnectors(data.connectors ?? []);
+    } catch (error) {
+      setConnectorStatus("Failed to load connectors.");
+    }
+  };
+
+  useEffect(() => {
+    loadConnectors();
+  }, []);
+
+  const handleConnect = async (id: string) => {
+    setConnectorStatus("Connecting...");
+    try {
+      const res = await fetch(`${gatewayBase}/api/connectors/connect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setConnectorStatus(data?.error ?? "Connect failed");
+        return;
+      }
+      setConnectorStatus("Connected.");
+      loadConnectors();
+    } catch (error) {
+      setConnectorStatus("Connect failed.");
+    }
+  };
+
+  const handleSync = async (id: string) => {
+    setConnectorStatus("Syncing...");
+    try {
+      const res = await fetch(`${gatewayBase}/api/connectors/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setConnectorStatus(data?.error ?? "Sync failed");
+        return;
+      }
+      setConnectorStatus(`Synced ${data.ingested} items.`);
+      loadConnectors();
+    } catch (error) {
+      setConnectorStatus("Sync failed.");
+    }
+  };
 
   const handleIngest = async () => {
     setStatus("Indexing files...");
@@ -214,6 +280,53 @@ export default function HomePage() {
         </div>
         {status ? <p className="status">{status}</p> : null}
         {watchStatus ? <p className="status">{watchStatus}</p> : null}
+      </section>
+
+      <section className="connectors">
+        <div className="browser-header">
+          <h2>Connectors</h2>
+          <button className="ghost small" onClick={loadConnectors}>
+            Refresh
+          </button>
+        </div>
+        {connectorStatus ? <p className="status">{connectorStatus}</p> : null}
+        <div className="connector-grid">
+          {connectors.map((connector) => (
+            <div key={connector.id} className="connector-card">
+              <div>
+                <strong>{connector.name}</strong>
+                <div className="connector-meta">{connector.description}</div>
+              </div>
+              <div className="connector-meta">
+                Status: {connector.connected ? "Connected" : "Not connected"}
+              </div>
+              {connector.lastSync ? (
+                <div className="connector-meta">
+                  Last sync: {new Date(connector.lastSync).toLocaleString()}
+                </div>
+              ) : null}
+              {connector.itemCount ? (
+                <div className="connector-meta">
+                  Items: {connector.itemCount}
+                </div>
+              ) : null}
+              <div className="inline-actions">
+                <button
+                  className="ghost small"
+                  onClick={() => handleConnect(connector.id)}
+                >
+                  Connect
+                </button>
+                <button
+                  className="ghost small"
+                  onClick={() => handleSync(connector.id)}
+                >
+                  Sync
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="grid">

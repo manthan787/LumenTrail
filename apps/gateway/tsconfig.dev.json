@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@lumentrail/pipelines": ["../../packages/pipelines/src/index.ts"],
+      "@lumentrail/connectors": ["../../packages/connectors/src/index.ts"]
+    }
+  }
+}

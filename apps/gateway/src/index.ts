@@ -1,12 +1,15 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { openDb, ingestFile, scanDirectory, searchChunks, explainChunk, watchDirectory, listItems, listChunks } from "@lumentrail/pipelines";
+import { openDb, ingestFile, scanDirectory, searchChunks, explainChunk, watchDirectory, listItems, listChunks, ingestText } from "@lumentrail/pipelines";
+import { getConnectorRegistry } from "@lumentrail/connectors";
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: true });
 const dbPath = process.env.LUMENTRAIL_DB_PATH ?? "./data/lumentrail.db";
 const db = openDb({ path: dbPath });
 let activeWatch: { path: string; close: () => Promise<void> } | null = null;
+const connectorRegistry = getConnectorRegistry();
+const connectorStatus = new Map<string, { connected: boolean; lastSync?: string; itemCount?: number }>();
 
 app.get("/health", async () => ({ ok: true, service: "gateway" }));
 
@@ -92,6 +95,56 @@ app.get("/api/chunks", async (req, reply) => {
   const limit = Number(query.limit ?? 50);
   const chunks = listChunks(db, query.itemId, Number.isNaN(limit) ? 50 : limit);
   return { chunks };
+});
+
+app.get("/api/connectors", async () => {
+  const connectors = connectorRegistry.map((connector) => {
+    const status = connectorStatus.get(connector.id);
+    return {
+      id: connector.id,
+      name: connector.name,
+      source: connector.source,
+      description: connector.description,
+      connected: status?.connected ?? false,
+      lastSync: status?.lastSync,
+      itemCount: status?.itemCount
+    };
+  });
+  return { connectors };
+});
+
+app.post("/api/connectors/connect", async (req, reply) => {
+  const body = req.body as { id?: string };
+  const connector = connectorRegistry.find((entry) => entry.id === body?.id);
+  if (!connector) {
+    reply.status(404);
+    return { ok: false, error: "connector_not_found" };
+  }
+  const status = await connector.connect();
+  connectorStatus.set(connector.id, {
+    connected: status.connected,
+    lastSync: status.lastSync
+  });
+  return { ok: true, status };
+});
+
+app.post("/api/connectors/sync", async (req, reply) => {
+  const body = req.body as { id?: string };
+  const connector = connectorRegistry.find((entry) => entry.id === body?.id);
+  if (!connector) {
+    reply.status(404);
+    return { ok: false, error: "connector_not_found" };
+  }
+  const result = await connector.sync();
+  result.items.forEach((item) => {
+    ingestText(db, item);
+  });
+  connectorStatus.set(connector.id, {
+    connected: true,
+    lastSync: new Date().toISOString(),
+    itemCount: result.items.length
+  });
+  return { ok: true, ingested: result.items.length };
 });
 
 const port = Number(process.env.PORT ?? 8787);
