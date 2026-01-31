@@ -1,0 +1,21 @@
+{
+  "name": "@lumentrail/pipelines",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "tsc -w -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
+    "lint": "echo 'pipelines lint not configured'",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@lumentrail/sdk": "workspace:*",
+    "better-sqlite3": "^11.5.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.9",
+    "@types/node": "^20.14.12",
+    "typescript": "^5.7.3"
+  }
+}

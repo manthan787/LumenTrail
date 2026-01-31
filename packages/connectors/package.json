@@ -1,0 +1,12 @@
+{
+  "name": "@lumentrail/connectors",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'connectors dev not configured'",
+    "build": "echo 'connectors build not configured'",
+    "lint": "echo 'connectors lint not configured'",
+    "typecheck": "echo 'connectors typecheck not configured'"
+  }
+}
