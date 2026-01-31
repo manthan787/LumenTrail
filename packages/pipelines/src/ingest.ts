@@ -1,11 +1,9 @@
 import { readFileSync, statSync } from "node:fs";
 import { extname, basename } from "node:path";
 import { Item, Chunk } from "@lumentrail/sdk";
-import type { SqliteDb } from "./db.js";
-
 const SUPPORTED_EXTENSIONS = new Set([".txt", ".md"]);
 
-export function ingestFile(db: SqliteDb, filePath: string) {
+export function ingestFile(db: any, filePath: string) {
   const ext = extname(filePath).toLowerCase();
   if (!SUPPORTED_EXTENSIONS.has(ext)) {
     return { ok: false, reason: "unsupported_extension" } as const;

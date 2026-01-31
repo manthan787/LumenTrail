@@ -1,12 +1,10 @@
-import type { SqliteDb } from "./db.js";
-
 export type SearchResult = {
   chunkId: string;
   itemId: string;
   text: string;
 };
 
-export function searchChunks(db: SqliteDb, query: string, limit = 20) {
+export function searchChunks(db: any, query: string, limit = 20) {
   const stmt = db.prepare(
     `SELECT chunk_id as chunkId, item_id as itemId, text
      FROM chunks
@@ -25,7 +23,7 @@ export type ExplainResult = {
   metadata: string | null;
 };
 
-export function explainChunk(db: SqliteDb, chunkId: string) {
+export function explainChunk(db: any, chunkId: string) {
   const stmt = db.prepare(
     `SELECT chunks.chunk_id as chunkId,
             chunks.item_id as itemId,

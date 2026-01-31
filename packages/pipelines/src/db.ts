@@ -1,5 +1,4 @@
 import Database from "better-sqlite3";
-import type * as BetterSqlite3 from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
@@ -7,9 +6,7 @@ export type DbConfig = {
   path: string;
 };
 
-export type SqliteDb = BetterSqlite3.Database;
-
-export function openDb(config: DbConfig) {
+export function openDb(config: DbConfig): any {
   mkdirSync(dirname(config.path), { recursive: true });
   const db = new Database(config.path);
   db.pragma("journal_mode = WAL");
